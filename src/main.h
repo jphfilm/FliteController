@@ -130,10 +130,10 @@ typedef struct
 //Date: 2020-11-17
 
 //The GUID of the FliteController class object
-#define GUID ""
+#define GUID "GUID"
 
 //The unique password for this controller's WiFi AP
-#define SERVER_PASSWORD ""
+#define SERVER_PASSWORD "PW"
 
 //The version of the codebase
 #define CODE_VERSION "1.3.2"
