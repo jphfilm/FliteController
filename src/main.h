@@ -67,6 +67,7 @@ void updateSensorData();
 void enableWebServer();
 void getControllerInfo();
 void getSensorSelection();
+void getSensorsUpdateInterval();
 void getValuesBlack();
 void getValuesBlue();
 void getValuesRed();
@@ -130,10 +131,10 @@ typedef struct
 //Date: 2020-11-17
 
 //The GUID of the FliteController class object
-#define GUID "MY GUID"
+#define GUID ""
 
 //The unique password for this controller's WiFi AP
-#define SERVER_PASSWORD "MY PW"
+#define SERVER_PASSWORD ""
 
 //The version of the codebase
 #define CODE_VERSION "1.3.2"

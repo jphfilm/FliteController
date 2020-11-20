@@ -1444,9 +1444,9 @@ void enableWebServer(){
 
   //Flite controller REST API server
   //This allows 3rd party controllers to get sensor data via http get requests
-  //Serve the controller info
   server.on("/getControllerInfo", HTTP_GET, getControllerInfo);
   server.on("/getSensorsSelected", HTTP_GET, getSensorSelection);
+  server.on("/getSensorsUpdateInterval", HTTP_GET, getSensorsUpdateInterval);
 
   //Serve the current level, temperature, and pressure for the corrseponding sensor
   server.on("/getValuesBlack", HTTP_GET, getValuesBlack);
@@ -1502,6 +1502,17 @@ void getSensorSelection() {
     if (sensorSelections[3] == '1') strcat(message, "true"); else strcat(message, "false");
     strcat(message, "}");
     server.send(200, "text/json", message);
+}
+
+//Serve update interval
+void getSensorsUpdateInterval() {
+  char message[100];
+  strcpy(message, "{\"interval\": \"");
+  char updateIntervalString[4];
+  dtostrf(SENSOR_UPDATE_INTERVAL, 1, 0, updateIntervalString);
+  strcat(message, updateIntervalString);
+  strcat(message, "\", \"units\": \"seconds\"}");
+  server.send(200, "text/json", message);
 }
 
 //Serve black sensor current values
