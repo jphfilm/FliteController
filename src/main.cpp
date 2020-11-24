@@ -541,6 +541,9 @@ void setup() {
   //Update the sensor data
   updateSensorData();
 
+  //Show initial sensor reads
+  updateMainDisplay(FLITE_BLUE, fliteSensorSelected->_level, fliteSensorSelected->_temperature, fliteSensorSelected->_psi);
+
   //Connect to the wifi
   connectToWiFi();
 

@@ -181,7 +181,7 @@ bool touchCal = false;
 #define CLOUD_UPDATE_INTERVAL 60
 
 //The interval to update the sensor data, in Seconds
-#define SENSOR_UPDATE_INTERVAL 30
+#define SENSOR_UPDATE_INTERVAL 300
 
 //Variables for web server
 #define SSID_PREFIX "Flite_"
