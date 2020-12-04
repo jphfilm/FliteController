@@ -35,12 +35,14 @@ FliteSensor *fliteSensorSelected;
 //Declare fliteSensors
 char blackString[10] = "BLACK";
 FliteSensor fliteSensorBlack = FliteSensor(blackString, 201, 211, 221, 231, 241);
+/*
 char blueString[10] = "BLUE";
 FliteSensor fliteSensorBlue = FliteSensor(blueString, 251, 261, 271, 281, 291);
 char redString[10] = "RED";
 FliteSensor fliteSensorRed = FliteSensor(redString, 301, 311, 321, 331, 341);
 char greenString[10] = "GREEN";
 FliteSensor fliteSensorGreen = FliteSensor(greenString, 351, 361, 371, 381, 391);
+*/
 
 //Used to hold level during calibration
 float levelHolder = 0.0;
@@ -480,12 +482,19 @@ const GFXbitmapFont UpArrowFont PROGMEM = {
     1};
 
 void setup() {
+  //Call startup routine
+  fliteStartup();
+}
+
+void(* resetFunc) (void) = 0;
+
+void fliteStartup(){
   //Initialize EEPROM
   EEPROM.begin(512);
 
   //Initialize the ssid for web server mode
   strcpy(server_ssid,SSID_PREFIX);
-  strcat(server_ssid,GUID);
+  strcat(server_ssid,getGUID());
 
   // Disable WiFi persistent mode to prevent wearing out the flash (we're storing ssid/pass in eeprom anyways)
   WiFi.persistent(false);
@@ -494,7 +503,7 @@ void setup() {
   WiFi.softAPdisconnect();
   //Setup the access point
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  WiFi.softAP(server_ssid, SERVER_PASSWORD);
+  WiFi.softAP(server_ssid, getMyPassword());
 
   // if DNSServer is started with "*" for domain name, it will reply with
   // provided IP to all DNS request
@@ -733,6 +742,7 @@ void setupfliteSensors(){
   if (sensorSelections[0] == '1'){
     setupfliteSensor(fliteSensorBlack, "black");
   }
+  /*
   if (sensorSelections[1] == '1'){
     setupfliteSensor(fliteSensorBlue, "blue");
   }
@@ -742,6 +752,7 @@ void setupfliteSensors(){
   if (sensorSelections[3] == '1'){
     setupfliteSensor(fliteSensorGreen, "green");
   }
+  */
 }
 
 void setupfliteSensor(FliteSensor &fliteSensor, String color){
@@ -894,7 +905,7 @@ void saveToParseServer(){
     //Call the parse cloud code
     ParseCloudFunction cloudFunctionBlack;
     cloudFunctionBlack.setFunctionName("addBlackFlite");
-    cloudFunctionBlack.add("fliteControllerIDBlack", GUID);
+    cloudFunctionBlack.add("fliteControllerIDBlack", getGUID());
     cloudFunctionBlack.add("levelBlack", averageHolderBlack);
     cloudFunctionBlack.add("temperatureBlack", fliteSensorBlack._temperature);
     cloudFunctionBlack.add("pressureBlack", fliteSensorBlack._psi);
@@ -902,12 +913,13 @@ void saveToParseServer(){
     // Free the resource
     responseBlack.close();
   }
+  /*
   if (sensorSelections[1] == '1'){
     delay(1000);
     //Call the parse cloud code
     ParseCloudFunction cloudFunctionBlue;
     cloudFunctionBlue.setFunctionName("addBlueFlite");
-    cloudFunctionBlue.add("fliteControllerIDBlue", GUID);
+    cloudFunctionBlue.add("fliteControllerIDBlue", getGUID());
     //cloudFunctionBlue.add("levelBlue", fliteSensorBlue._level);
     cloudFunctionBlue.add("temperatureBlue", fliteSensorBlue._temperature);
     cloudFunctionBlue.add("pressureBlue", fliteSensorBlue._psi);
@@ -920,7 +932,7 @@ void saveToParseServer(){
     //Call the parse cloud code
     ParseCloudFunction cloudFunctionRed;
     cloudFunctionRed.setFunctionName("addRedFlite");
-    cloudFunctionRed.add("fliteControllerIDRed", GUID);
+    cloudFunctionRed.add("fliteControllerIDRed", getGUID());
     //cloudFunctionRed.add("levelRed", fliteSensorRed._level);
     cloudFunctionRed.add("temperatureRed", fliteSensorRed._temperature);
     cloudFunctionRed.add("pressureRed", fliteSensorRed._psi);
@@ -933,7 +945,7 @@ void saveToParseServer(){
     //Call the parse cloud code
     ParseCloudFunction cloudFunctionGreen;
     cloudFunctionGreen.setFunctionName("addGreenFlite");
-    cloudFunctionGreen.add("fliteControllerIDGreen", GUID);
+    cloudFunctionGreen.add("fliteControllerIDGreen", getGUID());
     //cloudFunctionGreen.add("levelGreen", fliteSensorGreen._level);
     cloudFunctionGreen.add("temperatureGreen", fliteSensorGreen._temperature);
     cloudFunctionGreen.add("pressureGreen", fliteSensorGreen._psi);
@@ -941,6 +953,7 @@ void saveToParseServer(){
     // Free the resource
     responseGreen.close();
   }
+  */
 }
 
 //Returns the mount served in mL, assuming a 5 gal keg, with remaining gal provided
@@ -1029,7 +1042,7 @@ void showMainDisplay(){
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.print("ID: ");
-  tft.println(GUID);
+  tft.println(getGUID());
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.print("Version: ");
@@ -1384,6 +1397,7 @@ void updateSensorData(){
     fliteSensorBlack.getTemperature();
     fliteSensorBlack.getPressure();
   }
+  /*
   if (sensorSelections[1] == '1'){
     //showFooter("Reading Blue sensor data...");
     fliteSensorBlue.getLevel();
@@ -1402,6 +1416,7 @@ void updateSensorData(){
     fliteSensorGreen.getTemperature();
     fliteSensorGreen.getPressure();
   }
+  */
 }
 
 //This function enables the web server
@@ -1413,7 +1428,7 @@ void enableWebServer(){
   showFooter("Initializing web server...");
 
   //Setup mDNS
-  if (!MDNS.begin(GUID)){
+  if (!MDNS.begin(getGUID())){
     showFooter("Error setting up mDNS");
     while (1) {
       delay(1000);
@@ -1436,6 +1451,7 @@ void enableWebServer(){
   });
   
   //When the user updates their network settings or API configurations
+  server.on("/updateController", HTTP_POST, handleUpdateController);
   server.on("/updateWiFi", HTTP_POST, handleUpdateWiFiSettings);
   server.on("/testWiFi", HTTP_POST, handleTestWiFiSettings);
   server.on("/updateUnits", HTTP_POST, handleUpdateUnits);
@@ -1453,21 +1469,27 @@ void enableWebServer(){
 
   //Serve the current level, temperature, and pressure for the corrseponding sensor
   server.on("/getValuesBlack", HTTP_GET, getValuesBlack);
+  /*
   server.on("/getValuesBlue", HTTP_GET, getValuesBlue);
   server.on("/getValuesRed", HTTP_GET, getValuesRed);
   server.on("/getValuesGreen", HTTP_GET, getValuesGreen);
+  */
 
   //Serve the zero pressure offset for the corrseponding sensor
   server.on("/getZeroPressureBlack", HTTP_GET, getZeroPressureBlack);
+  /*
   server.on("/getZeroPressureBlue", HTTP_GET, getZeroPressureBlue);
   server.on("/getZeroPressureRed", HTTP_GET, getZeroPressureRed);
   server.on("/getZeroPressureGreen", HTTP_GET, getZeroPressureGreen);
+  */
 
   //Serve the level calibration coefficients for the corresponding sensor
   server.on("/getLevelCalBlack", HTTP_GET, getLevelCalBlack);
+  /*
   server.on("/getLevelCalBlue", HTTP_GET, getLevelCalBlue);
   server.on("/getLevelCalRed", HTTP_GET, getLevelCalRed);
   server.on("/getLevelCalGreen", HTTP_GET, getLevelCalGreen);
+  */
 
   //Start the web server
   server.begin();
@@ -1485,7 +1507,7 @@ void enableWebServer(){
 void getControllerInfo() {
   char message[100];
   strcpy(message, "{\"id\": \"");
-  strcat(message, GUID);
+  strcat(message, getGUID());
   strcat(message, "\", \"version\": \"");
   strcat(message, CODE_VERSION);
   strcat(message, "\"}");
@@ -1527,6 +1549,7 @@ void getValuesBlack() {
   getValues(l, t, p);
 }
 
+/*
 //Serve blue sensor current values
 void getValuesBlue() {
   float l = fliteSensorBlue._level;
@@ -1550,6 +1573,7 @@ void getValuesGreen() {
   float p = fliteSensorGreen._psi;
   getValues(l, t, p);
 }
+*/
 
 //Serve the values as a formatted JSON
 void getValues(float l, float t, float p){
@@ -1592,6 +1616,7 @@ void getZeroPressureBlack() {
   getZeroPressure(p);
 }
 
+/*
 //Serve blue sensor zero pressure offset
 void getZeroPressureBlue() {
   float p = fliteSensorBlue.getCalibrationZeroPSI();
@@ -1609,6 +1634,7 @@ void getZeroPressureGreen() {
   float p = fliteSensorGreen.getCalibrationZeroPSI();
   getZeroPressure(p);
 }
+*/
 
 //Serve zero pressure as formatted JSON
 void getZeroPressure(float p){
@@ -1638,6 +1664,7 @@ void getLevelCalBlack() {
   getLevelCal(lowEU, highEU, lowDistance, highDistance);
 }
 
+/*
 //Serve blue sensor level calibration coefficients
 void getLevelCalBlue() {
   float lowEU = fliteSensorBlue.getCalibrationLevelLow();
@@ -1664,6 +1691,7 @@ void getLevelCalGreen() {
   float highDistance = fliteSensorGreen.getCalibrationDistanceHigh();
   getLevelCal(lowEU, highEU, lowDistance, highDistance);
 }
+*/
 
 //Serve level calibration as a formatted JSON
 void getLevelCal(float lowEU, float highEU, float lowDistance, float highDistance){
@@ -1725,7 +1753,7 @@ void handleRoot() {
   htmlContent += FPSTR(CODE_VERSION);
   htmlContent += F("</p>");
   htmlContent += F("<p style=\"color:#60b0f4;\">ID: ");
-  htmlContent += FPSTR(GUID);
+  htmlContent += FPSTR(getGUID());
   htmlContent += F("</p>");
   htmlContent += F("</h1>");
   htmlContent += F("</div>");
@@ -1917,8 +1945,56 @@ void handleRoot() {
   
 
   htmlContent += F("<form action=\"/zeroPressure\" method='POST'><button type='button submit' class='btn btn-primary btn-lg'>CALIBRATE ZERO PRESSURE</button></form>");
-  htmlContent += F("</div>");
   
+  htmlContent += F("</div>");
+  htmlContent += F("</div>");
+
+  htmlContent += F("<div class=\"row\">");
+  htmlContent += F("<div class=\"col\">");
+  
+  htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
+  htmlContent += F("<p style=\"color:#5d5d5d;\">CONTROLLER CONFIGURATION</p>");
+  htmlContent += F("</h1>");
+
+  htmlContent += F("<form action=\"/updateController\" method=\"POST\">");
+  htmlContent += F("<div class=\"form-check\">");
+  if(controllerEnabled()){
+    htmlContent += F("<input type=\"checkbox\" class=\"form-check-input\" name=\"controllerEnabled\" value=\"true\" checked>");
+  } else {
+    htmlContent += F("<input type=\"checkbox\" class=\"form-check-input\" name=\"controllerEnabled\" value=\"true\">");
+  }
+  htmlContent += F("<label class=\"form-check-label\" for=\"controllerEnabled\">Enable</label>");
+  htmlContent += F("</div>");
+
+  char maxGUID[5];
+  char maxPW[5];
+  dtostrf(GUID_LENGTH, 0, 0, maxGUID);
+  dtostrf(AP_PW_LENGTH, 0, 0, maxPW);
+
+  htmlContent += F("<div class=\"form-group\">");
+  htmlContent += F("<label for=\"guid\">GUID (Maximum Characters: ");
+  htmlContent += FPSTR(maxGUID);
+  htmlContent += F(")</label>");
+  htmlContent += F("<input type=\"text\" class=\"form-control\" name=\"guid\" placeholder=\"GUID\" value=\"");
+  htmlContent += FPSTR(getGUID());
+  htmlContent += F("\" maxlength=\"");
+  htmlContent += FPSTR(maxGUID);
+  htmlContent += F("\"></br>");
+  htmlContent += F("</div>");
+  htmlContent += F("<div class=\"form-group\">");
+  htmlContent += F("<label for=\"mypassword\">My Password (Maximum Characters: ");
+  htmlContent += FPSTR(maxPW);
+  htmlContent += F(")</label>");
+  htmlContent += F("<input type=\"password\" class=\"form-control\" name=\"mypassword\" placeholder=\"My Password\" value=\"");
+  htmlContent += FPSTR(getMyPassword());
+  htmlContent += F("\" maxlength=\"");
+  htmlContent += FPSTR(maxPW);
+  htmlContent += F("\"></br>");
+  htmlContent += F("</div>");
+  htmlContent += F("<button type=\"submit\" class=\"btn btn-primary btn-lg\">UPDATE AND RESTART</button>");
+  htmlContent += F("</form>");
+  
+  htmlContent += F("</div>");
   htmlContent += F("</div>");
   
   htmlContent += F("<div class=\"row\">");
@@ -1966,7 +2042,7 @@ void handleRoot() {
   htmlContent += FPSTR(getWiFiPassword());
   htmlContent += F("\"></br>");
   htmlContent += F("</div>");
-  htmlContent += F("<button type=\"submit\" class=\"btn btn-primary btn-lg\">UPDATE</button>");
+  htmlContent += F("<button type=\"submit\" class=\"btn btn-primary btn-lg\">UPDATE AND CONNECT TO WIFI</button>");
   htmlContent += F("</form>");
   
   htmlContent += F("</div>");
@@ -2057,6 +2133,38 @@ void handleRoot() {
 //Send HTTP status 404 (Not Found) when there's no handler for the URI in the request
 void handleNotFound(){
   server.send(404, "text/plain", "404: Not found");
+}
+
+//If a post is made to update the controller guid and mypassword
+void handleUpdateController() {
+  //Make sure the POST has values for guid and mypassword
+  if( ! server.hasArg("guid") || server.arg("guid") == NULL || ! server.hasArg("mypassword") || server.arg("mypassword") == NULL) {
+    // The request is invalid, so send HTTP status 400
+    server.send(400, "text/plain", "400: Invalid Request");
+    return;
+  } else {
+    char guid[30] = "";
+    char password[30] = "";
+    //Update the wifi settings
+    //Get the strings from the HTML field arguments
+    String guidHTML = server.arg("guid");
+    String passwordHTML = server.arg("mypassword");
+    strncpy(guid, guidHTML.c_str(), 30);
+    strncpy(password, passwordHTML.c_str(), 30);  
+    //Store enabled in EEPROM
+    if(server.arg("controllerEnabled") == "true"){
+      EEPROM.put(371, "true");
+    } else {
+      EEPROM.put(371, "false");
+    }
+    //Store guid in EEPROM
+    EEPROM.put(301, guid);
+    //Store password in EEPROM
+    EEPROM.put(331, password);
+    EEPROM.commit();
+    //Reinitialize the controller
+    resetFunc();
+  }
 }
 
 //If a post is made to update the user's ssid and password
@@ -2245,6 +2353,20 @@ void setfliteSensorSelection(String selections){
   delay(1000);
 }
 
+char * getControllerEnabled(){
+  static char enabled[10];
+  EEPROM.get(371, enabled);
+  return enabled;
+}
+
+bool controllerEnabled(){
+  bool enabled = false;
+  if(strcmp(getControllerEnabled(), "true") == 0){
+    enabled = true;
+  }
+  return enabled;
+}
+
 char * getFliteAPIEnabled(){
   static char fliteEnabled[10];
   EEPROM.get(151, fliteEnabled);
@@ -2261,13 +2383,23 @@ bool fliteEnabled(){
 
 char * getFliteAppID(){
   static char fliteAppID[50];
-  EEPROM.get(401, fliteAppID);
+  //If Flite is enabled
+  if(fliteEnabled()){
+    EEPROM.get(401, fliteAppID);
+  } else {
+    strcpy(fliteAppID, "");
+  }
   return fliteAppID;
 }
 
 char * getFliteAPIKey(){
   static char fliteAPIKey[50];
-  EEPROM.get(451, fliteAPIKey);
+  //If Flite is enabled
+  if(fliteEnabled()){
+    EEPROM.get(451, fliteAPIKey);
+  } else {
+    strcpy(fliteAPIKey, "");
+  }
   return fliteAPIKey;
 }
 
@@ -2287,20 +2419,61 @@ bool taplistEnabled(){
 
 char * getTaplistAPIKey(){
   static char taplistAPIKey[60];
-  EEPROM.get(61, taplistAPIKey);
+  //If taplist is enabled
+  if(taplistEnabled()){
+    EEPROM.get(61, taplistAPIKey);
+  } else {
+    strcpy(taplistAPIKey, "");
+  }
   return taplistAPIKey;
 }
 
 char * getTaplistVenueID(){
   static char taplistVenueID[20];
-  EEPROM.get(121, taplistVenueID);
+  //If taplist is enabled
+  if(taplistEnabled()){
+    EEPROM.get(121, taplistVenueID);
+  } else {
+    strcpy(taplistVenueID, "");
+  }
   return taplistVenueID;
 }
 
 char * getTaplistTapID(){
   static char taplistTapID[5];
-  EEPROM.get(141, taplistTapID);
+  //If taplist is enabled
+  if(taplistEnabled()){
+    EEPROM.get(141, taplistTapID);
+  } else {
+    strcpy(taplistTapID, "");
+  }
   return taplistTapID;
+}
+
+char * getGUID(){
+  static char guid[30];
+  //If controller is enabled
+  if(controllerEnabled()){
+    EEPROM.get(301, guid);
+    guid[GUID_LENGTH] = '\0';
+  } else {
+    //Use default GUID
+    strcpy(guid, "DEFAULT");
+  }
+  return guid;
+}
+
+char * getMyPassword(){
+  static char myPassword[30];
+    //If controller is enabled
+  if(controllerEnabled()){
+    EEPROM.get(331, myPassword);
+    myPassword[AP_PW_LENGTH] = '\0';
+  } else {
+    //Use default password
+    strcpy(myPassword, "FliteRocks");
+  }
+  return myPassword;
 }
 
 char * getWiFiSSID(){

@@ -1,3 +1,27 @@
+/*
+    Author: DJMarlow - https://github.com/DJMarlow
+    Date: 2020-12-2
+    Version 1.3.3
+    
+    MIT License
+    Copyright (c) 2020 Derrick Marlow
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+
 #ifndef _MAIN_H
 #define _MAIN_H
 
@@ -19,6 +43,7 @@
 #include <Arduino.h>
 
 void setup();
+void fliteStartup();
 void loop();
 void secondsLoop();
 void clickListenerLoop();
@@ -69,22 +94,29 @@ void getControllerInfo();
 void getSensorSelection();
 void getSensorsUpdateInterval();
 void getValuesBlack();
+/*
 void getValuesBlue();
 void getValuesRed();
 void getValuesGreen();
+*/
 void getValues(float l, float t, float p);
 void getZeroPressureBlack();
+/*
 void getZeroPressureBlue();
 void getZeroPressureRed();
 void getZeroPressureGreen();
+*/
 void getZeroPressure(float p);
 void getLevelCalBlack();
+/*
 void getLevelCalBlue();
 void getLevelCalRed();
 void getLevelCalGreen();
+*/
 void getLevelCal(float lowEU, float highEU, float lowDistance, float highDistance);
 void handleRoot();
 void handleNotFound();
+void handleUpdateController();
 void handleUpdateWiFiSettings();
 void handleTestWiFiSettings();
 void handleUpdateUnits();
@@ -94,6 +126,8 @@ void handleLowCalibration();
 void handleUpdateFliteAPIKeys();
 void handleUpdateTaplistAPIKeys();
 void setfliteSensorSelection(String selections);
+char * getControllerEnabled();
+bool controllerEnabled();
 char *getFliteAPIEnabled();
 bool fliteEnabled();
 char *getFliteAppID();
@@ -103,6 +137,8 @@ bool taplistEnabled();
 char *getTaplistAPIKey();
 char *getTaplistVenueID();
 char *getTaplistTapID();
+char *getGUID();
+char *getMyPassword();
 char *getWiFiSSID();
 char *getWiFiPassword();
 char * getMetricUnitsEnabled();
@@ -124,20 +160,12 @@ typedef struct
     uint8_t glyphCount;
 } GFXbitmapFont;
 
-/*--------------------------------------------------*/
-//Only modify variables between these lines!
-//File: FliteController_V1.3.2_<ControllerID>.ino
-//Author: Derrick Marlow
-//Date: 2020-11-17
-
-//The GUID of the FliteController class object
-#define GUID ""
-
-//The unique password for this controller's WiFi AP
-#define SERVER_PASSWORD ""
-
 //The version of the codebase
-#define CODE_VERSION "1.3.2"
+#define CODE_VERSION "1.3.3"
+
+//Required length of GUID and AP Password
+#define GUID_LENGTH 8
+#define AP_PW_LENGTH 32
 
 //Calibrate the display
 //Set touchCal to true to calibrate the display, set back to false after finished
@@ -147,8 +175,6 @@ bool touchCal = false;
 #define MAXIMUM_X 3800
 #define MINIMUM_Y 3800
 #define MAXIMUM_Y 500
-
-/*--------------------------------------------------*/
 
 //Assign pins for ILI9341 display
 #define TFT_DC D2
