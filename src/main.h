@@ -160,7 +160,7 @@ typedef struct
     uint8_t glyphCount;
 } GFXbitmapFont;
 
-//The version of the codebase
+//The version of the Flite codebase
 #define CODE_VERSION "1.3.3"
 
 //Required length of GUID and AP Password
