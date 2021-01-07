@@ -1,7 +1,9 @@
 /*
     Author: DJMarlow - https://github.com/DJMarlow
-    Date: 2020-12-2
-    Version 1.3.3
+    Date: 2021-1-7
+    Version 1.3.4
+        - Updated FliteSensor lib to support updated Adafruit VL53L0X high accuracy mode
+        - Added BruControl support
     
     MIT License
     Copyright (c) 2020 Derrick Marlow
@@ -161,7 +163,7 @@ typedef struct
 } GFXbitmapFont;
 
 //The version of the Flite codebase
-#define CODE_VERSION "1.3.3"
+#define CODE_VERSION "1.3.4"
 
 //Required length of GUID and AP Password
 #define GUID_LENGTH 8
@@ -207,7 +209,7 @@ bool touchCal = false;
 #define CLOUD_UPDATE_INTERVAL 60
 
 //The interval to update the sensor data, in Seconds
-#define SENSOR_UPDATE_INTERVAL 10
+#define SENSOR_UPDATE_INTERVAL 300
 
 //Variables for web server
 #define SSID_PREFIX "Flite_"
