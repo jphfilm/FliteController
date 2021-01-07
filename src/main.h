@@ -1,8 +1,7 @@
 /*
     Author: DJMarlow - https://github.com/DJMarlow
     Date: 2021-1-7
-    Version 1.3.4
-        - Updated FliteSensor lib to support updated Adafruit VL53L0X high accuracy mode
+    Version 1.4.0
         - Added BruControl support
     
     MIT License
@@ -67,6 +66,8 @@ void saveToCloud();
 void saveToParseServer();
 int getmLServedFromGal(float gal);
 void saveToTaplist();
+void saveToBruControl();
+bool bruControlPUT(String variable, float value);
 void showSplash();
 void showMainDisplay();
 void updateMainDisplay(int color, float l, float t, float p);
@@ -127,8 +128,9 @@ void handleHighCalibration();
 void handleLowCalibration();
 void handleUpdateFliteAPIKeys();
 void handleUpdateTaplistAPIKeys();
+void handleUpdateBruControl();
 void setfliteSensorSelection(String selections);
-char * getControllerEnabled();
+char *getControllerEnabled();
 bool controllerEnabled();
 char *getFliteAPIEnabled();
 bool fliteEnabled();
@@ -139,11 +141,15 @@ bool taplistEnabled();
 char *getTaplistAPIKey();
 char *getTaplistVenueID();
 char *getTaplistTapID();
+char *getBruControlEnabled();
+bool bruControlEnabled();
+char *getBruControlIP();
+char *getBruControlPort();
 char *getGUID();
 char *getMyPassword();
 char *getWiFiSSID();
 char *getWiFiPassword();
-char * getMetricUnitsEnabled();
+char *getMetricUnitsEnabled();
 bool metricUnitsEnabled();
 void getfliteSensorSelection();
 
@@ -163,7 +169,7 @@ typedef struct
 } GFXbitmapFont;
 
 //The version of the Flite codebase
-#define CODE_VERSION "1.3.4"
+#define CODE_VERSION "1.4.0"
 
 //Required length of GUID and AP Password
 #define GUID_LENGTH 8

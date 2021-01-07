@@ -553,6 +553,9 @@ void fliteStartup(){
   //Show initial sensor reads
   updateMainDisplay(FLITE_BLUE, fliteSensorSelected->_level, fliteSensorSelected->_temperature, fliteSensorSelected->_psi);
 
+  //Initialize the average holder(s) with this initial level reading
+  averageHolderBlack = fliteSensorSelected->_level;
+
   //Connect to the wifi
   connectToWiFi();
 
@@ -815,8 +818,8 @@ int getTouchY(int rawY){
 bool isCloudServiceEnabled(){
   bool e = false;
 
-  //If either Flite or Taplist API enabled, cloud servies are enabled
-  if(fliteEnabled() || taplistEnabled()){
+  //If either Flite, Taplist API, or BruControl are enabled, cloud servies are enabled
+  if(fliteEnabled() || taplistEnabled() || bruControlEnabled()){
     e = true;
   }
 
@@ -882,6 +885,11 @@ void saveToCloud(){
       if(fliteEnabled()){
         //Flite API on parse server
         saveToParseServer();
+      }
+
+      if(bruControlEnabled()){
+        //BruControl data exchange
+        saveToBruControl();
       }
     }
   }
@@ -996,7 +1004,6 @@ void saveToTaplist(){
   //Convert all values to char
   char levelString[6];
   int servedMl = getmLServedFromGal(averageHolderBlack);
-  //int servedMl = getmLServedFromGal(fliteSensorBlack._level);
   dtostrf(servedMl, 1, 1, levelString);
   char temperatureString[6];
   float tempC = farenheitToCelsius(fliteSensorBlack._temperature);
@@ -1021,6 +1028,70 @@ void saveToTaplist(){
     }
   }
   httpClient.end();
+}
+
+//Updates BruControl server via data exchange
+//BLACK only supported at this time!
+void saveToBruControl(){
+
+  showFooter("Attempting to log to BruControl...");
+
+  if(bruControlPUT("Level", averageHolderBlack)){
+    if(bruControlPUT("Temperature", fliteSensorBlack._temperature)){
+      if(bruControlPUT("Pressure",fliteSensorBlack._psi)){
+        showFooter("Succesfully updated BruControl!");
+      } else {
+        showFooter("Error logging Pressure to BruControl!");
+      }
+    } else {
+      showFooter("Error logging Temperature to BruControl!");
+    }
+  } else {
+    showFooter("Error logging Level to BruControl!");
+  }
+
+}
+
+//Update a BruControl global variable
+bool bruControlPUT(String variable, float value){
+  //Initialize successful as false
+  bool success = false;
+
+  //Create the URL
+  //Global variable syntax is GUID_Variable
+  String url = "http://";
+  url += getBruControlIP();
+  url += ":";
+  url += getBruControlPort();
+  url += "/global/";
+  url += getGUID();
+  url += "_";
+  url += variable;
+
+  //Create the JSON to PUT
+  char valueString[6];
+  dtostrf(value, 1, 1, valueString);
+
+  String json = "{\"Value\":\"";
+  json += valueString;
+  json += "\"}";
+
+  //Create client and PUT json
+  HTTPClient httpClient;
+
+  httpClient.begin(url);
+  httpClient.addHeader("Content-Type", "application/json");
+
+  int responseCode = httpClient.PUT(json);
+
+  //If succesful, return true
+  if(responseCode > 0){
+    success = true;
+  }
+
+  httpClient.end();
+
+  return success;
 }
 
 void showSplash(){
@@ -1460,6 +1531,7 @@ void enableWebServer(){
   server.on("/lowCalibration", HTTP_POST, handleLowCalibration);
   server.on("/updateFliteAPIKeys", HTTP_POST, handleUpdateFliteAPIKeys);
   server.on("/updateTaplistAPI", HTTP_POST, handleUpdateTaplistAPIKeys);
+  server.on("/updateBruControl", HTTP_POST, handleUpdateBruControl);
 
   //Flite controller REST API server
   //This allows 3rd party controllers to get sensor data via http get requests
@@ -1542,7 +1614,6 @@ void getSensorsUpdateInterval() {
 
 //Serve black sensor current values
 void getValuesBlack() {
-  //float l = fliteSensorBlack._level;
   float l = averageHolderBlack;
   float t = fliteSensorBlack._temperature;
   float p = fliteSensorBlack._psi;
@@ -1769,7 +1840,6 @@ void handleRoot() {
   htmlContent += F("ctx.fillStyle = \"#CFA200\";");
   //Calculate the height of the fill based on the gallons provided
   //Keg height range 0-5 gallons is 0-130 pixels
-  //float l = fliteSensorSelected->_level;
   float l = averageHolderBlack;
   int fillPixels = (5 - l) * 26;
   int fillTop = 5 + fillPixels;
@@ -1792,7 +1862,6 @@ void handleRoot() {
   //If metric units are selected
   if(metricUnitsEnabled()){
     char levelString[4];
-    //dtostrf(gallonsToLiters(fliteSensorSelected->_level), 1, 1, levelString);
     dtostrf(gallonsToLiters(averageHolderBlack), 1, 1, levelString);
     htmlContent += F("<h2><p>");
     htmlContent += FPSTR(levelString);
@@ -1809,7 +1878,6 @@ void handleRoot() {
     htmlContent += F(" kPa</p></h2>");
   } else {
     char levelString[4];
-    //dtostrf(fliteSensorSelected->_level, 1, 1, levelString);
     dtostrf(averageHolderBlack, 1, 1, levelString);
     htmlContent += F("<h2><p>");
     htmlContent += FPSTR(levelString);
@@ -1831,6 +1899,9 @@ void handleRoot() {
 
   htmlContent += F("<div class=\"row\">");
   htmlContent += F("<div class=\"col\">");
+
+  //Calibration Configuration
+
   htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
   htmlContent += F("<p style=\"color:#5d5d5d;\">CALIBRATION</p>");
   htmlContent += F("</h1>");
@@ -1951,6 +2022,8 @@ void handleRoot() {
 
   htmlContent += F("<div class=\"row\">");
   htmlContent += F("<div class=\"col\">");
+
+  //Controller Configuration
   
   htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
   htmlContent += F("<p style=\"color:#5d5d5d;\">CONTROLLER CONFIGURATION</p>");
@@ -1999,6 +2072,8 @@ void handleRoot() {
   
   htmlContent += F("<div class=\"row\">");
   htmlContent += F("<div class=\"col\">");
+
+  //WiFi Configuration
   
   htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
   htmlContent += F("<p style=\"color:#5d5d5d;\">WIFI CONFIGURATION</p>");
@@ -2050,6 +2125,8 @@ void handleRoot() {
   
   htmlContent += F("<div class=\"row\">");
   htmlContent += F("<div class=\"col\">");
+
+  //Flite API Configuration
   
   htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
   htmlContent += F("  <p style=\"color:#5d5d5d;\">FLITE API CONFIGURATION</p>");
@@ -2084,6 +2161,8 @@ void handleRoot() {
 
   htmlContent += F("<div class=\"row\">");
   htmlContent += F("<div class=\"col\">");
+
+  //Taplist.io Configuration
   
   htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
   htmlContent += F("  <p style=\"color:#5d5d5d;\">TAPLIST.IO API CONFIGURATION</p>");
@@ -2121,6 +2200,42 @@ void handleRoot() {
   
   htmlContent += F("</div>");
   htmlContent += F("</div>");
+
+  //BruControl Configuration
+
+  htmlContent += F("<h1 style=\"background-color:#60b0f4;\">");
+  htmlContent += F("  <p style=\"color:#5d5d5d;\">BRUCONTROL CONFIGURATION</p>");
+  htmlContent += F("</h1>");
+
+  htmlContent += F("<form action=\"/updateBruControl\" method=\"POST\">");
+  htmlContent += F("<div class=\"form-check\">");
+  if(bruControlEnabled()){
+    htmlContent += F("<input type=\"checkbox\" class=\"form-check-input\" name=\"bruControlEnabled\" value=\"true\" checked>");
+  } else {
+    htmlContent += F("<input type=\"checkbox\" class=\"form-check-input\" name=\"bruControlEnabled\" value=\"true\">");
+  }
+  htmlContent += F("<label class=\"form-check-label\" for=\"bruControlEnabled\">Enable</label>");
+  htmlContent += F("</div>");
+  htmlContent += F("<div class=\"form-group\">");
+  htmlContent += F("<label for=\"id\">Server IP</label>");
+  htmlContent += F("<input type=\"text\" class=\"form-control\" name=\"IP\" placeholder=\"Server IP\" value=\"");
+  htmlContent += FPSTR(getBruControlIP());
+  htmlContent += F("\"></br>");
+  htmlContent += F("</div>");
+  htmlContent += F("<div class=\"form-group\">");
+  htmlContent += F("<label for=\"key\">Server Port</label>");
+  htmlContent += F("<input type=\"text\" class=\"form-control\" name=\"port\" placeholder=\"Server Port\" value=\"");
+  htmlContent += FPSTR(getBruControlPort());
+  htmlContent += F("\"></br>");
+  htmlContent += F("</div>");
+  htmlContent += F("<button type=\"submit\" class=\"btn btn-primary btn-lg\">UPDATE</button>");
+  htmlContent += F("</form>");
+  
+  htmlContent += F("</div>");
+  htmlContent += F("</div>");
+
+  htmlContent += F("<div class=\"row\">");
+  htmlContent += F("<div class=\"col\">");
 
   htmlContent += F("</div>");
   htmlContent += F("</body>");
@@ -2345,6 +2460,42 @@ void handleUpdateTaplistAPIKeys() {
   }
 }
 
+//If a post is made to update BruControl
+void handleUpdateBruControl() {
+  //Make sure the POST has values for IP and Port
+  if( ! server.hasArg("IP") || server.arg("IP") == NULL || ! server.hasArg("port") || server.arg("port") == NULL) {
+    // The request is invalid, so send HTTP status 400
+    server.send(400, "text/plain", "400: Invalid Request");
+    return;
+  } else {
+    //Variables for BruControl
+    char bruControlIP[20] = "";
+    char bruControlPort[10] = "";
+    //Update the configuration
+    //Get the strings from the HTML field arguments
+    String IPHTML = server.arg("IP");
+    String portHTML = server.arg("port");
+    strncpy(bruControlIP, IPHTML.c_str(), 20);
+    strncpy(bruControlPort, portHTML.c_str(), 10);  
+    //Store enabled in EEPROM
+    if(server.arg("bruControlEnabled") == "true"){
+      EEPROM.put(251, "true");
+    } else {
+      EEPROM.put(251, "false");
+    }
+    //Store IP in EEPROM
+    EEPROM.put(261, bruControlIP);
+    //Store port in EEPROM
+    EEPROM.put(281, bruControlPort);
+    EEPROM.commit();
+    //Update the browser
+    String htmlContent = "";
+    htmlContent += "<h1>Successfully saved BruControl configuration!</h1><h1>IP: " + server.arg("IP") + "</h1><h1>Port: " + server.arg("port") + "</h1>";
+    server.send(200, "text/html", htmlContent);
+    showFooter("BruControl updated...");
+  }
+}
+
 //Assign keg sensor selections to EEPROM
 void setfliteSensorSelection(String selections){
   strncpy(sensorSelections, selections.c_str(), 10);
@@ -2448,6 +2599,42 @@ char * getTaplistTapID(){
     strcpy(taplistTapID, "");
   }
   return taplistTapID;
+}
+
+char * getBruControlEnabled(){
+  static char enabled[10];
+  EEPROM.get(251, enabled);
+  return enabled;
+}
+
+bool bruControlEnabled(){
+  bool enabled = false;
+  if(strcmp(getBruControlEnabled(), "true") == 0){
+    enabled = true;
+  }
+  return enabled;
+}
+
+char * getBruControlIP(){
+  static char bruControlIP[20];
+  //If BruControl is enabled
+  if(bruControlEnabled()){
+    EEPROM.get(261, bruControlIP);
+  } else {
+    strcpy(bruControlIP, "");
+  }
+  return bruControlIP;
+}
+
+char * getBruControlPort(){
+  static char bruControlPort[10];
+  //If BruControl is enabled
+  if(bruControlEnabled()){
+    EEPROM.get(281, bruControlPort);
+  } else {
+    strcpy(bruControlPort, "");
+  }
+  return bruControlPort;
 }
 
 char * getGUID(){
