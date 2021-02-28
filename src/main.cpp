@@ -2004,10 +2004,10 @@ void handleRoot() {
   htmlContent += F("<div class=\"form-group\">");
   if(metricUnitsEnabled()){
     htmlContent += F("<label for=\"calibrationLevelLow\">Low Calibration Level (Liters)</label>");
-    htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"calibrationLevelHigh\" min=\"0\" max=\"19\" step=\"0.1\" value=\"");
+    htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"calibrationLevelLow\" min=\"0\" max=\"19\" step=\"0.1\" value=\"");
   } else {
     htmlContent += F("<label for=\"calibrationLevelLow\">Low Calibration Level (Gallons)</label>");
-    htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"calibrationLevelHigh\" min=\"0\" max=\"5\" step=\"0.1\" value=\"");
+    htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"calibrationLevelLow\" min=\"0\" max=\"5\" step=\"0.1\" value=\"");
   }
   htmlContent += FPSTR(levelLowCal);
   htmlContent += F("\">");
@@ -2351,6 +2351,10 @@ void handleUpdateUnits(){
 //A user has zeroed the pressure calibration
 void handleZeroPressure() {
   onCalibrateZeroPSITouch();
+  //Update the browser
+  String htmlContent = "";
+  htmlContent += "<h1>Successfully zeroed pressure!</h1>";
+  server.send(200, "text/html", htmlContent);
 }
 
 //A user has selected high calibration calibration
@@ -2366,6 +2370,10 @@ void handleHighCalibration() {
     levelHolder = calibrationLevel.toFloat();
     //Calibrate high
     onCalibrateHighTouch();
+    //Update the browser
+    String htmlContent = "";
+    htmlContent += "<h1>Successfully calibrated high level!</h1>";
+    server.send(200, "text/html", htmlContent);
   }
 }
 
@@ -2382,6 +2390,10 @@ void handleLowCalibration() {
     levelHolder = calibrationLevel.toFloat();
     //Calibrate low
     onCalibrateLowTouch();
+    //Update the browser
+    String htmlContent = "";
+    htmlContent += "<h1>Successfully calibrated low level!</h1>";
+    server.send(200, "text/html", htmlContent);
   }
 }
 

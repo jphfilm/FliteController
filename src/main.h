@@ -1,8 +1,9 @@
 /*
     Author: DJMarlow - https://github.com/DJMarlow
     Date: 2021-1-7
-    Version 1.4.0
-        - Added BruControl support
+    Version 1.4.1
+        - Low calirbation from web browser bug fixed
+        - Feedback for successful high, low, and zero pressure calirbation added to browser
     
     MIT License
     Copyright (c) 2020 Derrick Marlow
@@ -169,7 +170,7 @@ typedef struct
 } GFXbitmapFont;
 
 //The version of the Flite codebase
-#define CODE_VERSION "1.4.0"
+#define CODE_VERSION "1.4.1"
 
 //Required length of GUID and AP Password
 #define GUID_LENGTH 8
