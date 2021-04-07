@@ -599,7 +599,7 @@ void secondsLoop(){
   //Sample the selected sensor levels every 1 second
   updateSensorData();
   if (sensorSelections[0] == '1'){
-    if(averageCountBlack < SENSOR_UPDATE_INTERVAL){
+    if(averageCountBlack < getUpdateInterval()){
       //Add to the accumulator
       averageAccumulatorBlack += fliteSensorBlack._level;
       //Increment the count
@@ -608,9 +608,7 @@ void secondsLoop(){
       //Set the average holder for the next cycle
       averageHolderBlack = averageAccumulatorBlack / averageCountBlack;
       //Reset the count and accumulator
-      //averageAccumulatorBlack = 0.0;
       averageAccumulatorBlack = fliteSensorBlack._level;
-      //averageCountBlack = 0;
       averageCountBlack = 1;
    }
   }
@@ -618,11 +616,16 @@ void secondsLoop(){
   //TODO - Add averaging code for other colors if other colors are used
 
   //Update sensor values based on interval, use modulus operator
-  if (secondsCounter % SENSOR_UPDATE_INTERVAL == 0){
+  if (secondsCounter % getUpdateInterval() == 0){
     //Only update sensor and display if not in maintenance mode
     if (maintMode == false){
       updateMainDisplay(FLITE_BLUE, averageHolderBlack, fliteSensorSelected->_temperature, fliteSensorSelected->_psi);
-      showFooter("Ready...");
+      //Show the update interval
+      char updateMessage[40] = "Updated! Current interval (sec):";
+      char intervalMessage[5];
+      dtostrf(getUpdateInterval(), 0, 0, intervalMessage);
+      strcat(updateMessage, intervalMessage);
+      showFooter(updateMessage);
     }
   }
 
@@ -1529,6 +1532,7 @@ void enableWebServer(){
   server.on("/zeroPressure", HTTP_POST, handleZeroPressure);
   server.on("/highCalibration", HTTP_POST, handleHighCalibration);
   server.on("/lowCalibration", HTTP_POST, handleLowCalibration);
+  server.on("/updateInterval", HTTP_POST, handleUpdateInterval);
   server.on("/updateFliteAPIKeys", HTTP_POST, handleUpdateFliteAPIKeys);
   server.on("/updateTaplistAPI", HTTP_POST, handleUpdateTaplistAPIKeys);
   server.on("/updateBruControl", HTTP_POST, handleUpdateBruControl);
@@ -1606,7 +1610,8 @@ void getSensorsUpdateInterval() {
   char message[100];
   strcpy(message, "{\"interval\": \"");
   char updateIntervalString[4];
-  dtostrf(SENSOR_UPDATE_INTERVAL, 1, 0, updateIntervalString);
+  //dtostrf(SENSOR_UPDATE_INTERVAL, 1, 0, updateIntervalString);
+  dtostrf(getUpdateInterval(), 1, 0, updateIntervalString);
   strcat(message, updateIntervalString);
   strcat(message, "\", \"units\": \"seconds\"}");
   server.send(200, "text/json", message);
@@ -1936,6 +1941,7 @@ void handleRoot() {
   char levelHighCal[5];
   char distanceLowCal[5];
   char distanceHighCal[5];
+  char updateInterval[5];
 
   htmlContent += F("<h4><p><b>Current Calibration Settings</b></p></h4>");
   htmlContent += F("<h5>");
@@ -1986,6 +1992,17 @@ void handleRoot() {
   htmlContent += F("</h5>");
 
   htmlContent += F("<div class=\"col\">");
+
+  htmlContent += F("<form action=\"/updateInterval\" method=\"POST\">");
+  htmlContent += F("<div class=\"form-group\">");
+  htmlContent += F("<label for=\"sensorUpdateInterval\">Sensor Update Interval (Seconds)</label>");
+  htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"sensorUpdateInterval\" min=\"10\" max=\"600\" step=\"1\" value=\"");
+  dtostrf(getUpdateInterval(), 0, 0, updateInterval);
+  htmlContent += FPSTR(updateInterval);
+  htmlContent += F("\">");
+  htmlContent += F("<button type='button submit' class='btn btn-primary btn-lg'>UPDATE</button></form>");
+  htmlContent += F("</div>");
+
   htmlContent += F("<form action=\"/highCalibration\" method=\"POST\">");
   htmlContent += F("<div class=\"form-group\">");
   if(metricUnitsEnabled()){
@@ -2348,6 +2365,26 @@ void handleUpdateUnits(){
   }
 }
 
+//A user has changed the update interval
+void handleUpdateInterval(){
+  if( ! server.hasArg("sensorUpdateInterval") || server.arg("sensorUpdateInterval") == NULL) {
+    // The request is invalid, so send HTTP status 400
+    server.send(400, "text/plain", "400: Invalid Request");
+    return;
+  } else {
+    int updateInterval = server.arg("sensorUpdateInterval").toInt();
+    EEPROM.put(291, updateInterval);
+    EEPROM.commit();
+    //Update the browser
+    String htmlContent = "";
+    htmlContent += "<h1>Successfully updated sensor update interval to " + server.arg("sensorUpdateInterval") + " Seconds</h1>";
+    server.send(200, "text/html", htmlContent);
+    showFooter("Interval updated...");
+    //Update displayed calibration settings
+    updateDisplayedConfig();
+  }
+}
+
 //A user has zeroed the pressure calibration
 void handleZeroPressure() {
   onCalibrateZeroPSITouch();
@@ -2685,6 +2722,20 @@ char * getWiFiPassword(){
   static char clientPassword[30];
   EEPROM.get(31, clientPassword);
   return clientPassword;
+}
+
+int getUpdateInterval(){
+    int interval = 300;
+    EEPROM.get(291, interval);
+    //If interval is outside the acceptable range
+    if(interval < 10 || interval > 600){
+        interval = 300; 
+    }
+    //If interval is null
+    if (isnan(interval)){
+        interval = 300;
+    }
+    return interval;
 }
 
 char * getMetricUnitsEnabled(){

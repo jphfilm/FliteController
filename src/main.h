@@ -1,9 +1,8 @@
 /*
     Author: DJMarlow - https://github.com/DJMarlow
-    Date: 2021-1-7
-    Version 1.4.1
-        - Low calirbation from web browser bug fixed
-        - Feedback for successful high, low, and zero pressure calirbation added to browser
+    Date: 2021-3-18
+    Version 1.5.0
+        - Sensor update interval now user-configurable from web browser
     
     MIT License
     Copyright (c) 2020 Derrick Marlow
@@ -124,6 +123,7 @@ void handleUpdateController();
 void handleUpdateWiFiSettings();
 void handleTestWiFiSettings();
 void handleUpdateUnits();
+void handleUpdateInterval();
 void handleZeroPressure();
 void handleHighCalibration();
 void handleLowCalibration();
@@ -150,6 +150,7 @@ char *getGUID();
 char *getMyPassword();
 char *getWiFiSSID();
 char *getWiFiPassword();
+int getUpdateInterval();
 char *getMetricUnitsEnabled();
 bool metricUnitsEnabled();
 void getfliteSensorSelection();
@@ -170,7 +171,7 @@ typedef struct
 } GFXbitmapFont;
 
 //The version of the Flite codebase
-#define CODE_VERSION "1.4.1"
+#define CODE_VERSION "1.5.0"
 
 //Required length of GUID and AP Password
 #define GUID_LENGTH 8
@@ -214,9 +215,6 @@ bool touchCal = false;
 
 //The interval to update parse server, in Minutes
 #define CLOUD_UPDATE_INTERVAL 60
-
-//The interval to update the sensor data, in Seconds
-#define SENSOR_UPDATE_INTERVAL 300
 
 //Variables for web server
 #define SSID_PREFIX "Flite_"
