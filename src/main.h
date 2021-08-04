@@ -1,8 +1,9 @@
 /*
     Author: DJMarlow - https://github.com/DJMarlow
-    Date: 2021-3-18
-    Version 1.5.0
-        - Sensor update interval now user-configurable from web browser
+    Date: 2021-8-4
+    Version 1.6.0
+        - Added user configurable temperature offset
+        - Fixed calibration bug from display when level is "nan"
     
     MIT License
     Copyright (c) 2020 Derrick Marlow
@@ -110,6 +111,13 @@ void getZeroPressureRed();
 void getZeroPressureGreen();
 */
 void getZeroPressure(float p);
+void getTempOffsetBlack();
+/*
+void getTempOffsetBlue();
+void getTempOffsetRed();
+void getTempOffsetGreen();
+*/
+void getTempOffset(float t);
 void getLevelCalBlack();
 /*
 void getLevelCalBlue();
@@ -125,6 +133,7 @@ void handleTestWiFiSettings();
 void handleUpdateUnits();
 void handleUpdateInterval();
 void handleZeroPressure();
+void handleTempOffset();
 void handleHighCalibration();
 void handleLowCalibration();
 void handleUpdateFliteAPIKeys();
@@ -171,7 +180,7 @@ typedef struct
 } GFXbitmapFont;
 
 //The version of the Flite codebase
-#define CODE_VERSION "1.5.0"
+#define CODE_VERSION "1.6.0"
 
 //Required length of GUID and AP Password
 #define GUID_LENGTH 8

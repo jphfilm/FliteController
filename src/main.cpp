@@ -34,7 +34,7 @@ FliteSensor *fliteSensorSelected;
 
 //Declare fliteSensors
 char blackString[10] = "BLACK";
-FliteSensor fliteSensorBlack = FliteSensor(blackString, 201, 211, 221, 231, 241);
+FliteSensor fliteSensorBlack = FliteSensor(blackString, 201, 211, 221, 231, 241, 245);
 /*
 char blueString[10] = "BLUE";
 FliteSensor fliteSensorBlue = FliteSensor(blueString, 251, 261, 271, 281, 291);
@@ -1081,8 +1081,9 @@ bool bruControlPUT(String variable, float value){
 
   //Create client and PUT json
   HTTPClient httpClient;
+  WiFiClient wifiClient;
 
-  httpClient.begin(url);
+  httpClient.begin(wifiClient, url);
   httpClient.addHeader("Content-Type", "application/json");
 
   int responseCode = httpClient.PUT(json);
@@ -1249,6 +1250,7 @@ void updateDisplayedNetwork(){
 //This function updates the displayed calibration settings
 void updateDisplayedCalibration(){
   char pressureOffset[5];
+  char tempOffset[5];
   char levelLowCal[5];
   char levelHighCal[5];
   char distanceLowCal[5];
@@ -1275,10 +1277,13 @@ void updateDisplayedCalibration(){
     tft.setCursor(10,200);
     tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(1);
-    tft.print("Pressure Offset: ");
+    tft.print("Offsets: ");
     dtostrf(psiTokPa(fliteSensorBlack.getCalibrationZeroPSI()), 1, 1, pressureOffset);
     tft.print(pressureOffset);
-    tft.println(" kPa");
+    tft.print(" kPa / ");
+    dtostrf(farenheitToCelsius(fliteSensorBlack.getTemperatureOffset()), 1, 1, tempOffset);
+    tft.print(tempOffset);
+    tft.println(" Deg.C");
   } else {
     tft.print("Gallons: ");
     dtostrf(fliteSensorBlack.getCalibrationLevelLow(), 1, 1, levelLowCal);
@@ -1295,10 +1300,13 @@ void updateDisplayedCalibration(){
     tft.setCursor(10,200);
     tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(1);
-    tft.print("Pressure Offset: ");
+    tft.print("Offsets: ");
     dtostrf(fliteSensorBlack.getCalibrationZeroPSI(), 1, 1, pressureOffset);
     tft.print(pressureOffset);
-    tft.println(" PSI");
+    tft.print(" PSI / ");
+    dtostrf(fliteSensorBlack.getTemperatureOffset(), 1, 1, tempOffset);
+    tft.print(tempOffset);
+    tft.println(" Deg.F");
   }
 }
 
@@ -1383,10 +1391,17 @@ void onUpArrowTouch(){
     enterMaintMode();
   }
 
-  //Set the holder to the current level
-  levelHolder = fliteSensorSelected->_level;
-  //Increment the level holder by 0.1
-  levelHolder += 0.1;
+  //If value is "nan"
+  if (isnan(fliteSensorSelected->_level)){
+    //Increment the level holder by 0.1
+    levelHolder += 0.1;
+  } else {
+    //Set the holder to the current level
+    levelHolder = fliteSensorSelected->_level;
+    //Increment the level holder by 0.1
+    levelHolder += 0.1;
+  }
+
   //Limit level reading from 0-5 (Gallons) or 0-19 (Liters)
   if (levelHolder < 0.0){
     levelHolder = 0.0;
@@ -1414,10 +1429,17 @@ void onDownArrowTouch(){
     enterMaintMode();
   }
 
-  //Set the holder to the current level
-  levelHolder = fliteSensorSelected->_level;
-  //Decrement the level holder by 0.1
-  levelHolder -= 0.1;
+  //If value is "nan"
+  if (isnan(fliteSensorSelected->_level)){
+    //Decrement the level holder by 0.1
+    levelHolder -= 0.1;
+  } else {
+    //Set the holder to the current level
+    levelHolder = fliteSensorSelected->_level;
+    //Decrement the level holder by 0.1
+    levelHolder -= 0.1;
+  }
+
   //Limit level reading from 0-5 (Gallons) or 0-19 (Liters)
   if (levelHolder < 0.0){
     levelHolder = 0.0;
@@ -1436,6 +1458,14 @@ void onDownArrowTouch(){
 
   //Call function to display the holder value
   updateMainDisplay(ILI9341_RED, fliteSensorSelected->_level, fliteSensorSelected->_temperature, fliteSensorSelected->_psi);
+}
+
+//Store temperature offset setting for selected sensor
+void onSetTempOffset(float t){
+  showFooter("Storing temperature offset...");
+  fliteSensorSelected->setTemperatureOffset(t);
+  //Update displayed calibration settings
+  updateDisplayedConfig();
 }
 
 //Store zero PSI calibration setting for selected sensor
@@ -1532,6 +1562,7 @@ void enableWebServer(){
   server.on("/zeroPressure", HTTP_POST, handleZeroPressure);
   server.on("/highCalibration", HTTP_POST, handleHighCalibration);
   server.on("/lowCalibration", HTTP_POST, handleLowCalibration);
+  server.on("/tempOffset", HTTP_POST, handleTempOffset);
   server.on("/updateInterval", HTTP_POST, handleUpdateInterval);
   server.on("/updateFliteAPIKeys", HTTP_POST, handleUpdateFliteAPIKeys);
   server.on("/updateTaplistAPI", HTTP_POST, handleUpdateTaplistAPIKeys);
@@ -1557,6 +1588,14 @@ void enableWebServer(){
   server.on("/getZeroPressureBlue", HTTP_GET, getZeroPressureBlue);
   server.on("/getZeroPressureRed", HTTP_GET, getZeroPressureRed);
   server.on("/getZeroPressureGreen", HTTP_GET, getZeroPressureGreen);
+  */
+
+  //Serve the temperature offset for the corrseponding sensor
+  server.on("/getTempOffsetBlack", HTTP_GET, getTempOffsetBlack);
+  /*
+  server.on("/getTempOffsetBlue", HTTP_GET, getTempOffsetBlue);
+  server.on("/getTempOffsetRed", HTTP_GET, getTempOffsetRed);
+  server.on("/getTempOffsetGreen", HTTP_GET, getTempOffsetGreen);
   */
 
   //Serve the level calibration coefficients for the corresponding sensor
@@ -1727,6 +1766,51 @@ void getZeroPressure(float p){
     dtostrf(p, 1, 1, pressureString);
     strcat(message, pressureString);
     strcat(message, "\", \"pressureUnits\": \"PSI\"}");
+  }
+  server.send(200, "text/json", message);
+}
+
+//Serve black sensor temperature offset
+void getTempOffsetBlack() {
+  float t = fliteSensorBlack.getTemperatureOffset();
+  getTempOffset(t);
+}
+
+/*
+//Serve blue sensor temperature offset
+void getTempOffsetBlue() {
+  float t = fliteSensorBlue.getTemperatureOffset();
+  getTempOffset(t);
+}
+
+//Serve red sensor temperature offset
+void getTempOffsetRed() {
+  float t = fliteSensorRed.getTemperatureOffset();
+  getTempOffset(t);
+}
+
+//Serve green sensor temperature offset
+void getTempOffsetGreen() {
+  float t = fliteSensorGreen.getTemperatureOffset();
+  getTempOffset(t);
+}
+*/
+
+//Serve temperature offset as formatted JSON
+void getTempOffset(float t){
+  char message[100];
+  if(metricUnitsEnabled()){
+    strcpy(message, "{\"temperature\": \"");
+    char tempString[5];
+    dtostrf(farenheitToCelsius(t), 1, 1, tempString);
+    strcat(message, tempString);
+    strcat(message, "\", \"temperatureUnits\": \"DegC\"}");
+  } else {
+    strcpy(message, "{\"temperature\": \"");
+    char tempString[5];
+    dtostrf(t, 1, 1, tempString);
+    strcat(message, tempString);
+    strcat(message, "\", \"temperatureUnits\": \"DegF\"}");
   }
   server.send(200, "text/json", message);
 }
@@ -1937,6 +2021,7 @@ void handleRoot() {
   htmlContent += F("</h5>");
 
   char pressureOffset[5];
+  char tempOffset[5];
   char levelLowCal[5];
   char levelHighCal[5];
   char distanceLowCal[5];
@@ -1966,6 +2051,10 @@ void handleRoot() {
     dtostrf(psiTokPa(fliteSensorBlack.getCalibrationZeroPSI()), 1, 1, pressureOffset);
     htmlContent += FPSTR(pressureOffset);
     htmlContent += F(" kPa</p>");
+    htmlContent += F("<p><b>Temperature Offset: </b>");
+    dtostrf(farenheitToCelsius(fliteSensorBlack.getTemperatureOffset()), 1, 1, tempOffset);
+    htmlContent += FPSTR(tempOffset);
+    htmlContent += F(" Deg.C</p>");
   } else {
     htmlContent += F("<p><b>High Level Cal: </b>");
     dtostrf(fliteSensorBlack.getCalibrationLevelHigh(), 1, 1, levelHighCal);
@@ -1987,6 +2076,10 @@ void handleRoot() {
     dtostrf(fliteSensorBlack.getCalibrationZeroPSI(), 1, 1, pressureOffset);
     htmlContent += FPSTR(pressureOffset);
     htmlContent += F(" PSI</p>");
+    htmlContent += F("<p><b>Temperature Offset: </b>");
+    dtostrf(fliteSensorBlack.getTemperatureOffset(), 1, 1, tempOffset);
+    htmlContent += FPSTR(tempOffset);
+    htmlContent += F(" Deg.F</p>");
   }
   htmlContent += F("</div>");
   htmlContent += F("</h5>");
@@ -2029,6 +2122,21 @@ void handleRoot() {
   htmlContent += FPSTR(levelLowCal);
   htmlContent += F("\">");
   htmlContent += F("<button type='button submit' class='btn btn-primary btn-lg'>CALIBRATE LOW LEVEL</button></form>");
+  htmlContent += F("</div>");
+
+
+  htmlContent += F("<form action=\"/tempOffset\" method=\"POST\">");
+  htmlContent += F("<div class=\"form-group\">");
+  if(metricUnitsEnabled()){
+    htmlContent += F("<label for=\"tempOffset\">Temperature Offset (Deg.C)</label>");
+    htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"tempOffset\" min=\"0\" max=\"25\" step=\"0.1\" value=\"");
+  } else {
+    htmlContent += F("<label for=\"tempOffset\">Temperature Offset (Deg.F)</label>");
+    htmlContent += F("<input type=\"number\" class=\"form-control\" name=\"tempOffset\" min=\"0\" max=\"25\" step=\"0.1\" value=\"");
+  }
+  htmlContent += FPSTR(tempOffset);
+  htmlContent += F("\">");
+  htmlContent += F("<button type='button submit' class='btn btn-primary btn-lg'>SET TEMPERATURE OFFSET</button></form>");
   htmlContent += F("</div>");
   
 
@@ -2430,6 +2538,26 @@ void handleLowCalibration() {
     //Update the browser
     String htmlContent = "";
     htmlContent += "<h1>Successfully calibrated low level!</h1>";
+    server.send(200, "text/html", htmlContent);
+  }
+}
+
+//A user has selected update temp offset
+void handleTempOffset() {
+  //Make sure the POST has values
+  if( ! server.hasArg("tempOffset") || server.arg("tempOffset") == NULL) {
+    // The request is invalid, so send HTTP status 400
+    server.send(400, "text/plain", "400: Invalid Request");
+    return;
+  } else {
+    //Assign HTML field to the level holder
+    String tempOffset = server.arg("tempOffset");
+    float t = tempOffset.toFloat();
+    //Update offset
+    onSetTempOffset(t);
+    //Update the browser
+    String htmlContent = "";
+    htmlContent += "<h1>Successfully updated temperature offset!</h1>";
     server.send(200, "text/html", htmlContent);
   }
 }
