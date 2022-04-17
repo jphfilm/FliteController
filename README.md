@@ -12,6 +12,7 @@ The recommended HSCMAND150PA4A3 temp/pressure sensor is quite expensive, and pre
 
 At the time of writing, there appear to be no widely available pressure-sensing alternative to DJMarlow's recommended sensor.
 
+Most changes will be to the flite sensor library itself - the controller code will add changes to support saving of sensor configuration in CMOS
 
 https://www.flitesense.com/
 
